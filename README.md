@@ -56,7 +56,7 @@ App available at `http://localhost:5173`.
 
 **React over Next.js** — less setup overhead; a full SSR framework adds complexity with no benefit for a local single-user tool.
 
-**Top 10 tickers only** (AAPL, MSFT, NVDA, AMZN, GOOGL, META, BRK-B, TSLA, UNH, JPM) — yfinance imposes rate limits; a larger universe would require a paid data provider or more aggressive caching.
+**Top 10 tickers only, hardcoded** (AAPL, MSFT, NVDA, AMZN, GOOGL, META, BRK-B, TSLA, UNH, JPM) — the list is fixed in `services/stock_service.py` for simplicity; yfinance rate limits make a larger dynamic universe impractical without a paid data provider or more aggressive caching.
 
 **Data frequency capped at daily (1d)** — yfinance via `yf.download()` does not provide intraday historical data for free. The finest granularity available is daily OHLCV. Intraday data would require a paid provider (Alpaca, Polygon.io).
 

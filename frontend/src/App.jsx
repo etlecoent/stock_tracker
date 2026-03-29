@@ -1,6 +1,7 @@
 import TickerSelector from "./components/TickerSelector";
 import StockChart from "./components/StockChart";
 import StockTable from "./components/StockTable";
+import NotesSidebar from "./components/NotesSidebar";
 import { useStocks } from "./hooks/useStocks";
 import "./App.css";
 
@@ -28,8 +29,7 @@ export default function App() {
         </div>
 
         <aside className="notes-area">
-          {/* NotesSidebar — Task 10 */}
-          <div className="placeholder">Notes coming in Task 10</div>
+          <NotesSidebar ticker={stocks.ticker} />
         </aside>
 
         <section className="table-area">

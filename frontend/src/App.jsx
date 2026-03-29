@@ -1,5 +1,6 @@
 import TickerSelector from "./components/TickerSelector";
 import StockChart from "./components/StockChart";
+import StockTable from "./components/StockTable";
 import { useStocks } from "./hooks/useStocks";
 import "./App.css";
 
@@ -32,8 +33,7 @@ export default function App() {
         </aside>
 
         <section className="table-area">
-          {/* StockTable — Task 09 */}
-          <div className="placeholder">Table coming in Task 09</div>
+          <StockTable data={stocks.priceData} />
         </section>
       </main>
     </div>

@@ -191,3 +191,66 @@ body {
   color: var(--text-muted);
   font-size: 11px;
 }
+
+/* ── StockTable ── */
+
+.stock-table-wrap {
+  overflow: auto;
+  height: 100%;
+}
+
+.stock-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.stock-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--surface);
+}
+
+.stock-table th {
+  padding: 10px 14px;
+  text-align: right;
+  font-weight: 500;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+}
+
+.stock-table th:first-child { text-align: left; }
+
+.stock-table th:hover,
+.stock-table th.sorted { color: var(--text); }
+
+.sort-indicator {
+  font-size: 10px;
+  opacity: 0.6;
+}
+
+.stock-table td {
+  padding: 8px 14px;
+  text-align: right;
+  border-bottom: 1px solid var(--border);
+}
+
+.stock-table td:first-child { text-align: left; }
+
+.stock-table tbody tr:hover { background: var(--surface); }
+
+.stock-table .positive { color: var(--green); font-weight: 500; }
+.stock-table .negative { color: var(--red);   font-weight: 500; }
+
+.table-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-muted);
+  font-size: 13px;
+}

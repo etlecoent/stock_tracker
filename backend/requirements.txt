@@ -1,0 +1,7 @@
+fastapi
+uvicorn[standard]
+yfinance
+apscheduler
+aiosqlite
+pydantic
+httpx

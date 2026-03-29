@@ -1,4 +1,5 @@
 import TickerSelector from "./components/TickerSelector";
+import StockChart from "./components/StockChart";
 import { useStocks } from "./hooks/useStocks";
 import "./App.css";
 
@@ -14,8 +15,15 @@ export default function App() {
 
       <main className="app-main">
         <div className="chart-area">
-          {/* StockChart — Task 08 */}
-          <div className="placeholder">Chart coming in Task 08</div>
+          <StockChart
+            ticker={stocks.ticker}
+            data={stocks.priceData}
+            interval={stocks.interval}
+            onIntervalChange={stocks.setInterval}
+            preset={stocks.preset}
+            onPresetChange={stocks.applyPreset}
+            loading={stocks.loading}
+          />
         </div>
 
         <aside className="notes-area">

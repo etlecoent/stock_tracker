@@ -23,6 +23,9 @@ export default function App() {
 
       <main className="app-main">
         <div className="chart-area">
+          {stocks.error && (
+            <div className="error-banner">Failed to fetch data: {stocks.error}</div>
+          )}
           <StockChart
             tickers={stocks.selectedTickers}
             priceData={stocks.priceData}

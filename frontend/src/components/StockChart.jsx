@@ -143,7 +143,15 @@ export default function StockChart({
       </div>
 
       {!tickers.length ? (
-        <div className="chart-empty">Select tickers to begin</div>
+        <div className="chart-empty">Select tickers and click Apply to begin</div>
+      ) : loading && !displayData.length ? (
+        <div className="chart-empty chart-skeleton">
+          <div className="skeleton-bars">
+            {Array.from({ length: 12 }).map((_, i) => (
+              <div key={i} className="skeleton-bar" style={{ height: `${30 + Math.sin(i) * 25 + (i % 3) * 15}%` }} />
+            ))}
+          </div>
+        </div>
       ) : !displayData.length ? (
         <div className="chart-empty">No data for selected range</div>
       ) : (

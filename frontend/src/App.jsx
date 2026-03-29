@@ -12,14 +12,20 @@ export default function App() {
     <div className="app">
       <header className="app-header">
         <h1>S&amp;P 500 Tracker</h1>
-        <TickerSelector value={stocks.ticker} onChange={stocks.setTicker} />
+        <TickerSelector
+          selectedTickers={stocks.selectedTickers}
+          pendingTickers={stocks.pendingTickers}
+          onChange={stocks.setPendingTickers}
+          onApply={stocks.applyTickers}
+          onClear={stocks.clearTickers}
+        />
       </header>
 
       <main className="app-main">
         <div className="chart-area">
           <StockChart
-            ticker={stocks.ticker}
-            data={stocks.priceData}
+            tickers={stocks.selectedTickers}
+            priceData={stocks.priceData}
             interval={stocks.interval}
             onIntervalChange={stocks.setInterval}
             preset={stocks.preset}
@@ -29,11 +35,17 @@ export default function App() {
         </div>
 
         <aside className="notes-area">
-          <NotesSidebar ticker={stocks.ticker} />
+          <NotesSidebar
+            tickers={stocks.selectedTickers}
+            selectedTickers={stocks.selectedTickers}
+          />
         </aside>
 
         <section className="table-area">
-          <StockTable data={stocks.priceData} />
+          <StockTable
+            priceData={stocks.priceData}
+            tickers={stocks.selectedTickers}
+          />
         </section>
       </main>
     </div>

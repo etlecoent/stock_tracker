@@ -42,3 +42,7 @@ class StockListItem(BaseModel):
     ticker: str
     name: str
     sector: str
+
+
+# { "AAPL": [...], "MSFT": [...] }
+MultiStockPrices = dict[str, list[PricePoint]]

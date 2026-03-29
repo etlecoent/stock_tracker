@@ -1,8 +1,7 @@
 import { useState, useCallback } from "react";
 import {
-  ComposedChart,
+  LineChart,
   Line,
-  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -11,9 +10,11 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
+import { TICKER_COLORS } from "../hooks/useStocks";
 
 const INTERVALS = ["1d", "1wk", "1mo"];
 const PRESETS = ["1M", "3M", "1Y", "YTD"];
+const DASH_PATTERNS = ["", "8 4", "4 4", "12 4 4 4", "2 4"];
 
 function formatDate(dateStr) {
   if (!dateStr) return "";
@@ -21,36 +22,63 @@ function formatDate(dateStr) {
   return `${m}/${d}/${y.slice(2)}`;
 }
 
-function CustomTooltip({ active, payload, label }) {
+function normalizeData(priceData, tickers) {
+  // Build a map of date -> { date, [ticker]: pctChange }
+  const byDate = {};
+  for (const ticker of tickers) {
+    const points = priceData[ticker] ?? [];
+    if (!points.length) continue;
+    const base = points[0].close;
+    for (const p of points) {
+      if (!byDate[p.date]) byDate[p.date] = { date: p.date };
+      byDate[p.date][ticker] = +((( p.close - base) / base) * 100).toFixed(3);
+      byDate[p.date][`${ticker}_raw`] = p.close;
+    }
+  }
+  return Object.values(byDate).sort((a, b) => a.date.localeCompare(b.date));
+}
+
+function CustomTooltip({ active, payload, label, tickers, rawData }) {
   if (!active || !payload?.length) return null;
-  const p = payload[0]?.payload;
+  const row = rawData?.find((d) => d.date === label);
+  const byTicker = Object.fromEntries(payload.map((p) => [p.dataKey, p]));
   return (
     <div className="chart-tooltip">
       <div className="tooltip-date">{formatDate(label)}</div>
-      <div>Open: <strong>${p?.open?.toFixed(2)}</strong></div>
-      <div>Close: <strong>${p?.close?.toFixed(2)}</strong></div>
-      <div>High: <strong>${p?.high?.toFixed(2)}</strong></div>
-      <div>Low: <strong>${p?.low?.toFixed(2)}</strong></div>
-      <div>Volume: <strong>{p?.volume?.toLocaleString()}</strong></div>
+      {tickers.map((t, i) => {
+        const p = byTicker[t];
+        if (!p) return null;
+        const raw = row?.[`${t}_raw`];
+        return (
+          <div key={t} style={{ color: TICKER_COLORS[i] }}>
+            <strong>{t}</strong>: {p.value >= 0 ? "+" : ""}{p.value?.toFixed(2)}%
+            {raw != null && <span className="tooltip-raw"> (${raw.toFixed(2)})</span>}
+          </div>
+        );
+      })}
     </div>
   );
 }
 
 export default function StockChart({
-  ticker,
-  data,
+  tickers,
+  priceData,
   interval,
   onIntervalChange,
   preset,
   onPresetChange,
   loading,
 }) {
+  const [hidden, setHidden] = useState({});
   const [zoomStart, setZoomStart] = useState(null);
   const [zoomEnd, setZoomEnd] = useState(null);
   const [zoomActive, setZoomActive] = useState(false);
-  const [zoomedData, setZoomedData] = useState(null);
+  const [zoomedDates, setZoomedDates] = useState(null);
 
-  const displayData = zoomedData ?? data;
+  const allData = normalizeData(priceData, tickers);
+  const displayData = zoomedDates
+    ? allData.filter((d) => d.date >= zoomedDates[0] && d.date <= zoomedDates[1])
+    : allData;
 
   const handleMouseDown = useCallback((e) => {
     if (!e?.activeLabel) return;
@@ -68,35 +96,23 @@ export default function StockChart({
     if (!zoomActive) return;
     setZoomActive(false);
     if (!zoomStart || !zoomEnd || zoomStart === zoomEnd) {
-      setZoomStart(null);
-      setZoomEnd(null);
-      return;
+      setZoomStart(null); setZoomEnd(null); return;
     }
-    const [a, b] = [zoomStart, zoomEnd].sort();
-    setZoomedData(data.filter((d) => d.date >= a && d.date <= b));
-    setZoomStart(null);
-    setZoomEnd(null);
-  }, [zoomActive, zoomStart, zoomEnd, data]);
+    const sorted = [zoomStart, zoomEnd].sort();
+    setZoomedDates(sorted);
+    setZoomStart(null); setZoomEnd(null);
+  }, [zoomActive, zoomStart, zoomEnd]);
 
-  function resetZoom() {
-    setZoomedData(null);
-    setZoomStart(null);
-    setZoomEnd(null);
+  function resetZoom() { setZoomedDates(null); }
+
+  function toggleTicker(ticker) {
+    setHidden((prev) => ({ ...prev, [ticker]: !prev[ticker] }));
   }
-
-  // Reset zoom whenever base data changes
-  const prevDataRef = useCallback((node) => {
-    if (node !== null) setZoomedData(null);
-  }, []);
-
-  const prices = displayData?.map((d) => d.close) ?? [];
-  const minPrice = prices.length ? Math.min(...prices) * 0.995 : "auto";
-  const maxPrice = prices.length ? Math.max(...prices) * 1.005 : "auto";
 
   return (
     <div className="stock-chart">
       <div className="chart-controls">
-        <div className="control-group">
+        <div className="control-group" title="Set the date range for chart and table">
           {PRESETS.map((p) => (
             <button
               key={p}
@@ -120,85 +136,90 @@ export default function StockChart({
           ))}
           <span className="help-icon" data-tip="Set data granularity (daily, weekly, monthly)">?</span>
         </div>
-        {zoomedData && (
-          <button className="control-btn reset-btn" onClick={resetZoom}>
-            Reset zoom
-          </button>
+        {zoomedDates && (
+          <button className="control-btn reset-btn" onClick={resetZoom}>Reset zoom</button>
         )}
         {loading && <span className="chart-loading">Updating…</span>}
       </div>
 
-      {!displayData?.length ? (
-        <div className="chart-empty">
-          {ticker ? "No data available" : "Select a ticker to begin"}
-        </div>
+      {!tickers.length ? (
+        <div className="chart-empty">Select tickers to begin</div>
+      ) : !displayData.length ? (
+        <div className="chart-empty">No data for selected range</div>
       ) : (
-        <ResponsiveContainer width="100%" height={340}>
-          <ComposedChart
-            data={displayData}
-            margin={{ top: 8, right: 16, left: 0, bottom: 0 }}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            style={{ userSelect: "none" }}
-          >
-            <CartesianGrid strokeDasharray="3 3" stroke="#2a2d3a" />
-            <XAxis
-              dataKey="date"
-              tickFormatter={formatDate}
-              tick={{ fill: "#8892a4", fontSize: 11 }}
-              tickLine={false}
-              axisLine={{ stroke: "#2a2d3a" }}
-              minTickGap={60}
-            />
-            <YAxis
-              yAxisId="price"
-              domain={[minPrice, maxPrice]}
-              orientation="left"
-              tick={{ fill: "#8892a4", fontSize: 11 }}
-              tickLine={false}
-              axisLine={false}
-              tickFormatter={(v) => `$${v.toFixed(0)}`}
-              width={60}
-            />
-            <YAxis
-              yAxisId="volume"
-              orientation="right"
-              tick={{ fill: "#8892a4", fontSize: 11 }}
-              tickLine={false}
-              axisLine={false}
-              tickFormatter={(v) => `${(v / 1_000_000).toFixed(0)}M`}
-              width={50}
-            />
-            <Tooltip content={<CustomTooltip />} />
-            <Bar
-              yAxisId="volume"
-              dataKey="volume"
-              fill="#2a2d3a"
-              opacity={0.8}
-              name="Volume"
-            />
-            <Line
-              yAxisId="price"
-              type="monotone"
-              dataKey="close"
-              stroke="#3b82f6"
-              dot={false}
-              strokeWidth={2}
-              name="Close"
-            />
-            {zoomActive && zoomStart && zoomEnd && (
-              <ReferenceArea
-                yAxisId="price"
-                x1={zoomStart}
-                x2={zoomEnd}
-                strokeOpacity={0.3}
-                fill="#3b82f6"
-                fillOpacity={0.15}
+        <>
+          <div className="chart-legend">
+            {tickers.map((t, i) => (
+              <button
+                key={t}
+                className={`legend-item ${hidden[t] ? "legend-hidden" : ""}`}
+                onClick={() => toggleTicker(t)}
+                style={{ "--color": TICKER_COLORS[i] }}
+              >
+                <svg width="16" height="8" className="legend-line">
+                  <line
+                    x1="0" y1="4" x2="16" y2="4"
+                    stroke={TICKER_COLORS[i]}
+                    strokeWidth="2"
+                    strokeDasharray={DASH_PATTERNS[i]}
+                  />
+                </svg>
+                {t}
+              </button>
+            ))}
+          </div>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart
+              data={displayData}
+              margin={{ top: 4, right: 16, left: 0, bottom: 0 }}
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              style={{ userSelect: "none" }}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="#2a2d3a" />
+              <XAxis
+                dataKey="date"
+                tickFormatter={formatDate}
+                tick={{ fill: "#8892a4", fontSize: 11 }}
+                tickLine={false}
+                axisLine={{ stroke: "#2a2d3a" }}
+                minTickGap={60}
               />
-            )}
-          </ComposedChart>
-        </ResponsiveContainer>
+              <YAxis
+                tick={{ fill: "#8892a4", fontSize: 11 }}
+                tickLine={false}
+                axisLine={false}
+                tickFormatter={(v) => `${v >= 0 ? "+" : ""}${v.toFixed(1)}%`}
+                width={64}
+              />
+              <Tooltip content={<CustomTooltip tickers={tickers.filter((t) => !hidden[t])} rawData={displayData} />} />
+              {tickers.map((t, i) =>
+                hidden[t] ? null : (
+                  <Line
+                    key={t}
+                    type="monotone"
+                    dataKey={t}
+                    stroke={TICKER_COLORS[i]}
+                    dot={false}
+                    strokeWidth={2}
+                    strokeDasharray={DASH_PATTERNS[i]}
+                    connectNulls
+                  />
+                )
+              )}
+              {zoomActive && zoomStart && zoomEnd && (
+                <ReferenceArea
+                  x1={zoomStart}
+                  x2={zoomEnd}
+                  strokeOpacity={0.3}
+                  fill="#3b82f6"
+                  fillOpacity={0.15}
+                />
+              )}
+            </LineChart>
+          </ResponsiveContainer>
+        </>
       )}
     </div>
   );

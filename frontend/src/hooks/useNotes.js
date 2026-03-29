@@ -1,24 +1,25 @@
 import { useState, useEffect, useCallback } from "react";
 import { getNotes, createNote, updateNote, deleteNote } from "../api/client";
 
-export function useNotes(ticker) {
+export function useNotes(tickers) {
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   const fetch = useCallback(async () => {
-    if (!ticker) { setNotes([]); return; }
+    if (!tickers.length) { setNotes([]); return; }
     setLoading(true);
     setError(null);
     try {
-      const data = await getNotes({ ticker });
-      setNotes(data);
+      // Fetch notes for all tickers in parallel
+      const results = await Promise.all(tickers.map((t) => getNotes({ ticker: t })));
+      setNotes(results.flat());
     } catch (e) {
       setError(e.message);
     } finally {
       setLoading(false);
     }
-  }, [ticker]);
+  }, [tickers.join(",")]);
 
   useEffect(() => { fetch(); }, [fetch]);
 

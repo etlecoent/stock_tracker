@@ -25,6 +25,13 @@ export function getStockInfo(ticker) {
   return request(`/stocks/${ticker}/info`);
 }
 
+export function getMultiStockPrices(tickers, { start, end, interval = "1d" } = {}) {
+  const params = new URLSearchParams({ tickers: tickers.join(","), interval });
+  if (start) params.set("start", start);
+  if (end) params.set("end", end);
+  return request(`/stocks/prices?${params}`);
+}
+
 export function getNotes({ ticker, date } = {}) {
   const params = new URLSearchParams();
   if (ticker) params.set("ticker", ticker);

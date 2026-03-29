@@ -106,6 +106,7 @@ export default function StockChart({
               {p}
             </button>
           ))}
+          <span className="help-icon" data-tip="Set the date range for chart and table">?</span>
         </div>
         <div className="control-group">
           {INTERVALS.map((iv) => (
@@ -117,6 +118,7 @@ export default function StockChart({
               {iv}
             </button>
           ))}
+          <span className="help-icon" data-tip="Set data granularity (daily, weekly, monthly)">?</span>
         </div>
         {zoomedData && (
           <button className="control-btn reset-btn" onClick={resetZoom}>
